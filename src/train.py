@@ -1,38 +1,56 @@
-import game
+from pendulum import Pendulum
+from geometry import Vec
+import random
+import math
 import ai
 
 
-def train(agent):
-    g = game.Game()
+AGENT_TIME = 3600 * 3
+
+
+def train(agent: ai.Agent):
+    pendulum = Pendulum()
+    # pendulum.x = random.uniform(-0.5, 0.5)
+    # pendulum.horizontal_velocity = random.uniform(-1, 1)
+    # pendulum.angle = random.uniform(-math.pi, math.pi)
+    # pendulum.angular_velocity = random.uniform(-0.5, 0.5)
     score = 0
 
-    while g.score < 1000 and not g.bird.dead:
-        for pipe in g.pipes:
-            if pipe.x - g.bird.x > -pipe.width:
-                next_pipe = pipe
-                break
+    while agent.ticks < AGENT_TIME:
+        output = agent.run(
+            pendulum.x,
+            pendulum.horizontal_velocity,
+            math.cos(pendulum.angle),
+            math.sin(pendulum.angle),
+            pendulum.angular_velocity,
+        )
 
-        # score -= 0.01 * abs(next_pipe.y - g.bird.y)
-        if not (
-            g.bird.y + g.bird.height / 2 > next_pipe.y
-            or g.bird.y < next_pipe.y - next_pipe.height
-        ):
-            score += 1
+        acceleration = Vec(output[0] * 30, 0)
+        pendulum.apply_acceleration(acceleration)
+        pendulum.update()
 
-        inputs = [g.bird.y, g.bird.yvel, next_pipe.y]
-        output = agent.run(inputs)
+        y = -math.sin(pendulum.angle)
+        if y > 0:
+            score += y * (1 - abs(pendulum.x))
+        score -= abs(pendulum.x) ** 3 * 5
 
-        if output[0] > 0.5:
-            g.jump()
-
-        g.tick(1 / 60)
+        # score -= math.sin(pendulum.angle) * 0.1
+        # score -= abs(pendulum.x) * 10
+        # score -= abs(pendulum.angular_velocity) * 0.1
+        # score -= abs(pendulum.horizontal_velocity) * 0.1
 
     return score
 
 
 def main():
     rlm = ai.ReinforcementLearningModel(
-        train, 30, ["y", "yvel", "ypipe"], ["jump"], [4, 4], "sigmoid"
+        func=train,
+        num_agents=50,
+        inputs=["cart.x", "cart.vel", "bob.x", "bob.y", "bob.vel"],
+        outputs=["acceleration"],
+        hidden=[10, 10],
+        hidden_activation="tanh",
+        output_activation="tanh",
     )
     rlm.train()
 
