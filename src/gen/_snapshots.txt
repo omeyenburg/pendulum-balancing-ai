@@ -1,0 +1,19 @@
+For generation 1388
+
+angular_damping = 0.7
+horizontal_damping = 0.48
+gravity = 0.65
+
+
+For generations gen2157 to gen12157:
+
+angular_damping = 0.64624 + (0.1 - 0.64624) * (generation - 2157) / 10000
+horizontal_damping = 0.463872 + (0.3 - 0.463872) * (generation - 2157) / 10000
+gravity = 1.470736 + (9.81 - 1.470736) * (generation - 2157) / 10000
+
+
+For generations past gen12157:
+
+angular_damping = 0.1
+horizontal_damping = 0.3
+gravity = 9.81

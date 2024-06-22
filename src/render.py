@@ -1,6 +1,7 @@
 from pendulum import Pendulum
 from geometry import Vec
 import pygame.freetype
+import math
 import pygame
 
 
@@ -48,11 +49,11 @@ class Window:
 
         # Draw pendulum
         cart = center + Vec(self.pendulum.x * unit_length, 0)
-        weight = Vec.from_angle(self.pendulum.angle)
-        weight = weight * unit_length * self.pendulum.radius + cart
-        pygame.draw.line(self.window, GRAY, cart.tolist(), weight.tolist(), 3)
+        bob = Vec.from_angle(self.pendulum.angle)
+        bob = bob * unit_length * self.pendulum.radius + cart
+        pygame.draw.line(self.window, GRAY, cart.tolist(), bob.tolist(), 3)
         pygame.draw.circle(self.window, WHITE, cart.tolist(), 3)
-        pygame.draw.circle(self.window, WHITE, weight.tolist(), 8)
+        pygame.draw.circle(self.window, WHITE, bob.tolist(), 8)
 
         pygame.display.flip()
         self.clock.tick(60) / 1000.0

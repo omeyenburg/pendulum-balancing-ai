@@ -1,6 +1,6 @@
 from __future__ import annotations
-
 import math
+
 
 Number = float | int
 
@@ -60,7 +60,7 @@ class Vec:
         return Vec(-self.x, -self.y)
 
     def __abs__(self):
-        return math.sqrt(self.x ** 2 + self.y ** 2)
+        return math.sqrt(self.x**2 + self.y**2)
 
     @staticmethod
     def from_angle(angle: float):
@@ -77,8 +77,10 @@ class Vec:
         length = abs(self)
         return Vec(self.x / length, self.y / length)
 
-    def round(self, digits: int=0):
-        return Vec(round(self.x, digits), round(self.y, digits))
+    def round(self, digits: int = 0):
+        if digits:
+            return Vec(round(self.x, digits), round(self.y, digits))
+        return Vec(round(self.x), round(self.y))
 
     def dot(self, other: "Vec"):
         return self.x * other.x + self.y * other.y

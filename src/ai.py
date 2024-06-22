@@ -1,3 +1,4 @@
+from __future__ import annotations
 import concurrent.futures
 import threading
 import random
@@ -6,13 +7,36 @@ import time
 import json
 import os
 
+try:
+    import psutil
+    PSUTIL_AVAILABLE = True
+except ModuleNotFoundError:
+    PSUTIL_AVAILABLE = False
+
 
 GENERATION_DIRECTORY: str = os.path.join(os.path.split(__file__)[0], "gen")
-NUM_WORKERS: int = 8  # Number of workers, not agents
-WEIGHT_CHANGE_STRENGTH: float = 0.003
-BIAS_CHANGE_STRENGTH: float = 0.001
+NUM_WORKERS: int = 8  # Number of workers/processes, not agents
+WEIGHT_CHANGE_STRENGTH: float = 0.05
+BIAS_CHANGE_STRENGTH: float = 0.015
 PRINT_RESULTS: bool = True
-SESSION_GENERATIONS: int = 500
+SESSION_GENERATIONS: int = 2000
+
+
+def set_niceness(niceness):
+    """
+    Set the priority of the current process. Lower values mean higher priority.
+    -20 <= niceness <= 20
+    """
+    if not PSUTIL_AVAILABLE:
+        return
+
+    try:
+        p = psutil.Process(os.getpid())
+        p.nice(niceness)
+    except psutil.AccessDenied:
+        # Permission denied to set niceness.
+        # Fixed by running as root or adjusting system permissions.
+        return
 
 
 def get_newest_generation(files: list[str]):
@@ -56,19 +80,24 @@ def save_generation_data(data: dict):
     thread.start()
 
 
-def load():
+def load(generation=-1):
     """
-    Returns the data of the most recent generation save file.
+    Returns the data of the specified generation save file.
+    Returns the most recent file if generation is set to -1.
     Returns None if no save file is found.
     """
-    os.path.isdir(GENERATION_DIRECTORY) or os.makedirs(GENERATION_DIRECTORY)
-    generation = get_newest_generation(os.listdir(GENERATION_DIRECTORY))
     if generation == -1:
-        return None
+        os.path.isdir(GENERATION_DIRECTORY) or os.makedirs(GENERATION_DIRECTORY)
+        generation = get_newest_generation(os.listdir(GENERATION_DIRECTORY))
+        if generation == -1:
+            return None
 
     file_name = os.path.join(GENERATION_DIRECTORY, "gen" + str(generation) + ".json")
-    with open(file_name, "r") as fp:
-        data = json.load(fp)
+    try:
+        with open(file_name, "r") as fp:
+            data = json.load(fp)
+    except FileNotFoundError:
+        return None
 
     data["layers"] = numpy.array(data["layers"])
 
@@ -76,17 +105,22 @@ def load():
 
 
 def seconds_to_str(t):
-    seconds = round(t) % 60
-    minutes = round(t / 60) % 60
-    hours = round(t / 3600) % 24
-    days = round(t / 3600 / 24)
+    seconds = int(t) % 60
+    minutes = int(t / 60) % 60
+    hours = int(t / 3600) % 24
+    days = int(t / 3600 / 24) % 356
+    years = int(t / 3600 / 24 / 356)
 
     def join_plural(number, unit):
         if number == 1:
             return str(number) + " " + unit
         return str(number) + " " + unit + "s"
 
-    if days:
+    if years:
+        string = join_plural(years, "year")
+        if days:
+            string += ", " + join_plural(days, "day")
+    elif days:
         string = join_plural(days, "day")
         if hours:
             string += ", " + join_plural(hours, "hour")
@@ -104,6 +138,16 @@ def seconds_to_str(t):
     return string
 
 
+def _worker_process(func, *args):
+    set_niceness(-10)
+    agent = Agent(*args)
+
+    score = func(agent)
+    ticks = agent.ticks
+
+    return score, ticks
+
+
 def activation_function(name: str):
     """
     Returns a activation function from a name.
@@ -112,26 +156,26 @@ def activation_function(name: str):
 
 
 class ActivationFunction:
-    @staticmethod
     def sigmoid(z):
         return 1 / (1 + numpy.exp(-z))
 
-    @staticmethod
     def tanh(z):
         return numpy.tanh(z)
 
-    @staticmethod
     def relu(z):
         return numpy.maximum(0, z)
 
 
 class Agent:
-    def __init__(self, layers, weights, biases, hidden_activation, output_activation):
+    def __init__(
+        self, layers, weights, biases, hidden_activation, output_activation, generation
+    ):
         self.layers = layers
         self.weights = weights
         self.biases = biases
         self.hidden_activation = hidden_activation
         self.output_activation = output_activation
+        self.generation = generation
         self.ticks = 0
         self._initialize_arrays(weights, biases)
 
@@ -162,23 +206,25 @@ class Agent:
             weight_index += layer * next_layer
 
     @staticmethod
-    def load():
+    def load(generation=-1) -> "Agent":
         """
-        Load the latest generation and return the agent.
+        Load the specified generation and return the agent.
+        Set generation to -1 to load the latest generation.
         """
-        generation = load()
+        generation = load(generation)
         assert generation
 
-        layers = numpy.array(generation["layers"])
-        weights = numpy.array(generation["weights"])
-        biases = numpy.array(generation["biases"])
-        hidden_activation = activation_function(generation["hidden_activation"])
-        output_activation = activation_function(generation["output_activation"])
+        agent = Agent(
+            layers=numpy.array(generation["layers"]),
+            weights=numpy.array(generation["weights"]),
+            biases=numpy.array(generation["biases"]),
+            hidden_activation=activation_function(generation["hidden_activation"]),
+            output_activation=activation_function(generation["output_activation"]),
+            generation=generation["generation"],
+        )
 
-        agent = Agent(layers, weights, biases, hidden_activation, output_activation)
         agent.ticks = generation["ticks"]
         agent.time = generation["time"]
-        agent.generation = generation["generation"]
         agent.inputs = generation["inputs"]
         agent.outputs = generation["outputs"]
 
@@ -255,27 +301,29 @@ class ReinforcementLearningModel:
         self.biases = numpy.zeros((self.num_agents, num_biases)) * 2 - 1
 
     def train(self):
+        set_niceness(-10)
         last_time = time.time()
-        with concurrent.futures.ThreadPoolExecutor(max_workers=NUM_WORKERS) as executor:
+        with concurrent.futures.ProcessPoolExecutor(NUM_WORKERS) as executor:
             for _ in range(SESSION_GENERATIONS):
+                self.data["generation"] += 1
                 self._iterate(executor)
                 t = time.time()
                 self.data["time"] += t - last_time
                 last_time = t
 
     def _iterate(self, executor):
-        self.data["generation"] += 1
         self._adjust_weights()
 
         workers = [
             executor.submit(
-                self._worker_process,
+                _worker_process,
                 self.func,
                 self.data["layers"],
                 self.weights[i],
                 self.biases[i],
                 self.hidden_activation,
                 self.output_activation,
+                self.data["generation"],
             )
             for i in range(self.num_agents)
         ]
@@ -295,7 +343,11 @@ class ReinforcementLearningModel:
         save_generation_data(generation_data)
 
         # Use best weights and biases
-        new_agents = [results[0][0]] * self.num_agents
+        new_agents = [results[0][0]] * (self.num_agents * 9 // 10)
+        new_agents.extend(
+            random.choices(range(self.num_agents), k=self.num_agents - len(new_agents))
+        )
+
         for i, agent in enumerate(new_agents):
             self.weights[i] = self.weights[agent].copy()
             self.biases[i] = self.biases[agent].copy()
@@ -328,14 +380,10 @@ class ReinforcementLearningModel:
             min_time = min(time)
             max_time = max(time)
 
-            string = f"Generation: {gen}; Best Score: {best_score}; Total Time: {tot_time}; Gen Time: {gen_time}; Min Time: {min_time}; Max Time: {max_time}"
+            string = (
+                f"Generation: {gen}; Best Score: {best_score}; Total Time: {tot_time}"
+            )
+
+            if not min_time == max_time == gen_time // self.num_agents:
+                string += f"; Gen Time: {gen_time}; Min Time: {min_time}; Max Time: {max_time}"
             print(string)
-
-    @staticmethod
-    def _worker_process(func, *args):
-        agent = Agent(*args)
-
-        score = func(agent)
-        ticks = agent.ticks
-
-        return score, ticks
