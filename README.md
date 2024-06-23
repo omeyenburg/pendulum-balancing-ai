@@ -1,6 +1,6 @@
-# Pendulum stabilisation AI
+# Pendulum Balancing AI
 
-This Python program simulates a pendulum on a cart that can move within the range of -1 ≤ x ≤ 1. An AI, trained using reinforcement learning, is capable of stabilizing the pendulum in an inverted position.
+This Python program simulates a pendulum on a cart that can move within the range of -1 ≤ x ≤ 1. An AI, trained using reinforcement learning, balances the pendulum upside down.
 
 AI inputs:
 
