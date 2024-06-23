@@ -39,12 +39,12 @@ class Window:
             if event.type == pygame.QUIT:
                 pygame.quit()
                 raise SystemExit
-            if event.type == pygame.MOUSEWHEEL:  # Accelerate with mouse wheel
+            elif event.type == pygame.MOUSEWHEEL:  # Accelerate with mouse wheel
                 self.pendulum.apply_acceleration(Vec(event.y * 10, 0))
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                if event.button == 1:  # Reset with left click
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_r:  # Reset
                     self.pendulum = Pendulum()
-                elif event.button == 3:  # Toggle ai with right click
+                elif event.key == pygame.K_t:  # Toggle ai
                     self.ai_enabled = not self.ai_enabled
 
         self.draw()

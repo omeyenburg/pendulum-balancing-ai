@@ -4,7 +4,7 @@ import math
 
 # Set fixed delta_time; uncontrolled delta_time leads to uninterntional behaviour
 DELTA_TIME = 1 / 60
-ANGULAR_DAMPING = 0.1
+ANGULAR_DAMPING = 0.7
 HORIZONTAL_DAMPING = 0.3
 GRAVITY = 9.81
 
