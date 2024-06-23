@@ -36,15 +36,21 @@ AI output:
 
 ### Running program
 
-To simulate the pendulum without the AI: `python3 src/render.py`
+Simulate the pendulum without the AI:
+`python3 src/render.py`
 
-To simulate the pendulum with the AI: `python3 src/render_ai.py`
-Optional arguments: `--gen [int]`
+Simulate the pendulum with the AI:
+`python3 src/render_ai.py`
 
-To train the AI: `python3 src/train.py`
-Optional arguments: `--time [float]`, `--random-start [bool]`, `--distract [bool]`
+> Optional arguments:
+>
+> - `--gen [int]`
 
-### Clean up
+Train the AI:
+`python3 src/train.py`
 
-To remove all generations: `rm src/gen/*`
-To remove unnecessary generations: `find src/gen -regex "gen.*[1-9]\.json" -delete`
+> Optional arguments:
+>
+> - `--time [float]`
+> - `--random-start [bool]`
+> - `--distract [bool]`
