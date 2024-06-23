@@ -39,7 +39,7 @@ class Window:
         rail_start = center + Vec(unit_length, 0)
         rail_end = center - Vec(unit_length, 0)
         pygame.draw.line(self.window, GRAY, rail_start.tolist(), rail_end.tolist(), 2)
-        rail_sections = 6
+        rail_sections = 4
 
         for i in range(rail_sections + 1):
             x = rail_start.x * i / rail_sections + rail_end.x * (1 - i / rail_sections)

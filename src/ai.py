@@ -5,6 +5,7 @@ import random
 import numpy
 import time
 import json
+import sys
 import os
 
 try:
@@ -16,10 +17,25 @@ except ModuleNotFoundError:
 
 GENERATION_DIRECTORY: str = os.path.join(os.path.split(__file__)[0], "gen")
 NUM_WORKERS: int = 8  # Number of workers/processes, not agents
-WEIGHT_CHANGE_STRENGTH: float = 0.05
-BIAS_CHANGE_STRENGTH: float = 0.015
+WEIGHT_CHANGE_STRENGTH: float = 0.01
+BIAS_CHANGE_STRENGTH: float = 0.005
 PRINT_RESULTS: bool = True
 SESSION_GENERATIONS: int = 2000
+TRANSFER_BEST_PERCENT: float = 0.5
+
+
+def argv(name, default):
+    try:
+        value: str = sys.argv[sys.argv.index("--" + name) + 1]
+        if isinstance(default, bool):
+            if value == "False":
+                return False
+            if value == "True":
+                return True
+            return int(value)
+        return value
+    except (ValueError, IndexError):
+        return default
 
 
 def set_niceness(niceness):
@@ -313,6 +329,8 @@ class ReinforcementLearningModel:
 
     def _iterate(self, executor):
         self._adjust_weights()
+        self._adjust_weights()
+        self._adjust_weights()
 
         workers = [
             executor.submit(
@@ -343,7 +361,8 @@ class ReinforcementLearningModel:
         save_generation_data(generation_data)
 
         # Use best weights and biases
-        new_agents = [results[0][0]] * (self.num_agents * 9 // 10)
+        new_agents = [results[0][0]] * int(self.num_agents * TRANSFER_BEST_PERCENT)
+        new_agents.extend([results[1][0]] * ((self.num_agents - len(new_agents)) // 3))
         new_agents.extend(
             random.choices(range(self.num_agents), k=self.num_agents - len(new_agents))
         )

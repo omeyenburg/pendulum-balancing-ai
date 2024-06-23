@@ -7,7 +7,7 @@ import math
 import ai
 
 
-GENERATION = -1
+GENERATION = ai.argv("gen", -1)
 
 WIDTH = 540
 HEIGHT = 675

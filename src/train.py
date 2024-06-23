@@ -5,9 +5,9 @@ import math
 import ai
 
 
-AGENT_TIME = 3600
-RANDOM_START = True
-DISTRACTIONS = True
+AGENT_TIME = ai.argv("time", 60.0) * 60
+RANDOM_START = ai.argv("random-start", False)
+DISTRACTIONS = ai.argv("distract", False)
 
 
 def train(agent: ai.Agent):
@@ -17,10 +17,10 @@ def train(agent: ai.Agent):
     last_acceleration = 0
 
     if RANDOM_START and agent.generation % 2 == 1:
-        pendulum.x = random.uniform(-0.7, 0.7)
-        pendulum.angle = math.pi / 2 + random.uniform(-math.pi, math.pi)
-        pendulum.angular_velocity = random.uniform(-3, 3)
-        pendulum.horizontal_velocity = random.uniform(-3, 3)
+        pendulum.x = random.uniform(-0.1, 0.1)
+        pendulum.angle = -math.pi / 2 + random.uniform(-0.3, 0.3)
+        # pendulum.angular_velocity = random.uniform(-3, 3)
+        # pendulum.horizontal_velocity = random.uniform(-3, 3)
 
     if DISTRACTIONS:
         distraction_time = random.randint(0, AGENT_TIME)
@@ -52,23 +52,23 @@ def train(agent: ai.Agent):
             score += y * (1 - abs(pendulum.x))
 
         # Loose score close to edges
-        score -= abs(pendulum.x) ** 3 * 5
+        score -= abs(pendulum.x) * 10
+
+        if -0.01 <= pendulum.x <= 0.01:
+            score += 30
+
+        score -= abs(output[0]) * 5
 
         # Loose score for fast acceleration changes
-        score -= abs(output[0] - last_acceleration) * 0.1
+        score -= abs(output[0] - last_acceleration) * 5
         last_acceleration = output[0]
 
-        # Loose score for accelerating away from center after 10 seconds
-        if agent.ticks > 1200:
+        # Loose score for accelerating away from center after 5 seconds
+        if agent.ticks > 300:
             if pendulum.x > 0 and output[0] > 0:
-                score -= 1
+                score -= 3
             if pendulum.x < 0 and output[0] < 0:
-                score -= 1
-
-        # score -= math.sin(pendulum.angle) * 0.1
-        # score -= abs(pendulum.x) * 10
-        # score -= abs(pendulum.angular_velocity) * 0.1
-        # score -= abs(pendulum.horizontal_velocity) * 0.1
+                score -= 3
 
     return score
 
