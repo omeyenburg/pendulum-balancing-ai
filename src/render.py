@@ -23,13 +23,7 @@ class Window:
         self.clock = pygame.time.Clock()
 
         self.center = Vec(WIDTH // 2, HEIGHT // 2)
-        self.to_center = Vec(WIDTH // 2, HEIGHT * 2 // 3)
-        self.from_center = Vec(WIDTH // 2, HEIGHT // 2)
-
         self.unit_length = abs(WIDTH // 8 - WIDTH // 2)
-
-        self.down_time = 0
-        self.start_down = False
 
     def update(self):
         for event in pygame.event.get():
@@ -45,20 +39,10 @@ class Window:
 
         self.draw()
         self.pendulum.update()
-        if (
-            abs(self.pendulum.angle - math.pi / 2) < 0.01
-            and abs(self.pendulum.angular_velocity) < 0.5
-        ):
-            self.start_down = True
 
         pygame.display.flip()
         dt = self.clock.tick(60)
         self.window.fill(BLACK)
-
-        if self.start_down and self.down_time <= 1:
-            i = -2 * self.down_time**3 + 3 * self.down_time**2
-            # self.center = self.from_center * (1 - i) + self.to_center * i
-            self.down_time += dt / 3000
 
     def draw(self):
         # Draw rail
