@@ -1,8 +1,28 @@
 from __future__ import annotations
 import math
+import sys
+import os
 
 
 Number = float | int
+
+
+def argv(name: str, default):
+    try:
+        value: str = sys.argv[sys.argv.index("--" + name) + 1]
+        if isinstance(default, bool):
+            if value == "False":
+                return False
+            if value == "True":
+                return True
+            return int(value)
+        return default.__class__(value)
+    except (ValueError, IndexError):
+        return default
+
+
+def abspath(dir: str):
+    return os.path.join(os.path.split(__file__)[0], dir)
 
 
 class Vec:

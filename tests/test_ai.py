@@ -4,6 +4,10 @@ import ai
 def test_activation_functions():
     a = ai.ActivationFunction
 
+    assert ai._activation_function("relu") == a.relu
+    assert ai._activation_function("tanh") == a.tanh
+    assert ai._activation_function("sigmoid") == a.sigmoid
+
     assert a.relu(2) == 2
     assert a.relu(-1) == 0
     assert a.relu(0) == 0

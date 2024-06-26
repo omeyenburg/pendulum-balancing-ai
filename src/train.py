@@ -1,13 +1,13 @@
 from pendulum import Pendulum
-from geometry import Vec
+from util import Vec, argv
 import random
 import math
 import ai
 
 
-AGENT_TIME = ai.argv("time", 60.0) * 60
-RANDOM_START = ai.argv("random-start", False)
-DISTRACTIONS = ai.argv("distract", False)
+AGENT_TIME = argv("time", 60.0) * 60
+RANDOM_START = argv("random-start", False)
+DISTRACTIONS = argv("distract", False)
 
 
 def train(agent: ai.Agent):

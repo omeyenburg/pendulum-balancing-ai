@@ -1,5 +1,5 @@
 from pendulum import Pendulum
-from geometry import Vec
+from util import Vec, argv
 import pygame.freetype
 import pygame.gfxdraw
 import pygame
@@ -7,10 +7,10 @@ import math
 import ai
 
 
-GENERATION = ai.argv("gen", -1)
-
+FPS = 60
 WIDTH = 540
 HEIGHT = 675
+GENERATION = argv("gen", -1)
 
 WHITE = (200, 200, 200)
 GRAY = (100, 100, 100)
@@ -20,8 +20,16 @@ BLACK = (0, 0, 0)
 class Window:
     def __init__(self):
         self.agent: ai.Agent = ai.Agent.load(GENERATION)
-        self.pendulum = Pendulum()
         self.ai_enabled = True
+
+        self.pendulum = Pendulum()
+        self.pendulum.angular_damping = argv(
+            "angular-damping", self.pendulum.angular_damping
+        )
+        self.pendulum.horizontal_damping = argv(
+            "horizontal-damping", self.pendulum.horizontal_daming
+        )
+        self.pendulum.gravity = argv("gravity", self.pendulum.gravity)
 
         pygame.init()
         self.window = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -40,7 +48,8 @@ class Window:
                 pygame.quit()
                 raise SystemExit
             elif event.type == pygame.MOUSEWHEEL:  # Accelerate with mouse wheel
-                self.pendulum.apply_acceleration(Vec(event.y * 10, 0))
+                acceleration = (-event.x or event.y) * 5
+                self.pendulum.apply_acceleration(Vec(acceleration, 0))
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_r:  # Reset
                     self.pendulum = Pendulum()
@@ -52,7 +61,7 @@ class Window:
         self.pendulum.update()
 
         pygame.display.flip()
-        self.clock.tick(60)
+        self.clock.tick(FPS)
         self.window.fill(BLACK)
 
     def draw(self):

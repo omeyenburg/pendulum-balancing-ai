@@ -1,5 +1,6 @@
-from geometry import Vec
+from util import Vec, argv
 import math
+import sys
 
 
 def test_vec():
@@ -29,3 +30,27 @@ def test_vec():
     assert Vec(1, 0).tolist() == (1, 0)
     assert Vec(0, -3).normalized() == Vec(0, -1)
     assert Vec(1, 0).rotated(math.pi / 2).round(3) == Vec(0, 1)
+
+
+def test_argv():
+    sys.argv.extend(
+        [
+            "--int",
+            "51",
+            "--float",
+            "12.42",
+            "--str",
+            "string",
+            "--bool1",
+            "True",
+            "--bool2",
+            "False",
+        ]
+    )
+
+    assert argv("none", "") == ""
+    assert argv("int", 0) == 51
+    assert argv("float", 0.0) == 12.42
+    assert argv("str", "") == "string"
+    assert argv("bool1", False) is True
+    assert argv("bool2", True) is False

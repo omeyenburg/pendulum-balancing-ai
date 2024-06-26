@@ -1,5 +1,5 @@
 from pendulum import Pendulum
-from geometry import Vec
+from util import Vec, argv
 import pygame.freetype
 import math
 import pygame
@@ -16,7 +16,13 @@ BLACK = (0, 0, 0)
 class Window:
     def __init__(self):
         self.pendulum = Pendulum()
-        self.pendulum.angle = 0.5
+        self.pendulum.angular_damping = argv(
+            "angular-damping", self.pendulum.angular_damping
+        )
+        self.pendulum.horizontal_damping = argv(
+            "horizontal-damping", self.pendulum.horizontal_daming
+        )
+        self.pendulum.gravity = argv("gravity", self.pendulum.gravity)
 
         pygame.init()
         self.window = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -31,7 +37,7 @@ class Window:
                 pygame.quit()
                 raise SystemExit
             elif event.type == pygame.MOUSEWHEEL:
-                acceleration = min(20, max(-20, event.precise_y * 3))
+                acceleration = (-event.x or event.y) * 5
                 self.pendulum.apply_acceleration(Vec(acceleration, 0))
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_r:  # Reset
@@ -41,7 +47,7 @@ class Window:
         self.pendulum.update()
 
         pygame.display.flip()
-        dt = self.clock.tick(60)
+        self.clock.tick(60)
         self.window.fill(BLACK)
 
     def draw(self):

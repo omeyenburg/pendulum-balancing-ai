@@ -3,6 +3,7 @@ import concurrent.futures
 import threading
 import random
 import numpy
+import util
 import time
 import json
 import sys
@@ -10,32 +11,19 @@ import os
 
 try:
     import psutil
+
     PSUTIL_AVAILABLE = True
 except ModuleNotFoundError:
     PSUTIL_AVAILABLE = False
 
 
-GENERATION_DIRECTORY: str = os.path.join(os.path.split(__file__)[0], "gen")
+GENERATION_DIRECTORY: str = util.abspath("gen")
 NUM_WORKERS: int = 8  # Number of workers/processes, not agents
 WEIGHT_CHANGE_STRENGTH: float = 0.01
 BIAS_CHANGE_STRENGTH: float = 0.005
 PRINT_RESULTS: bool = True
 SESSION_GENERATIONS: int = 2000
 TRANSFER_BEST_PERCENT: float = 0.5
-
-
-def argv(name, default):
-    try:
-        value: str = sys.argv[sys.argv.index("--" + name) + 1]
-        if isinstance(default, bool):
-            if value == "False":
-                return False
-            if value == "True":
-                return True
-            return int(value)
-        return value
-    except (ValueError, IndexError):
-        return default
 
 
 def set_niceness(niceness):
@@ -96,7 +84,7 @@ def save_generation_data(data: dict):
     thread.start()
 
 
-def load(generation=-1):
+def _load_generation(generation=-1):
     """
     Returns the data of the specified generation save file.
     Returns the most recent file if generation is set to -1.
@@ -164,7 +152,7 @@ def _worker_process(func, *args):
     return score, ticks
 
 
-def activation_function(name: str):
+def _activation_function(name: str):
     """
     Returns a activation function from a name.
     """
@@ -227,15 +215,15 @@ class Agent:
         Load the specified generation and return the agent.
         Set generation to -1 to load the latest generation.
         """
-        generation = load(generation)
+        generation = _load_generation(generation)
         assert generation
 
         agent = Agent(
             layers=numpy.array(generation["layers"]),
             weights=numpy.array(generation["weights"]),
             biases=numpy.array(generation["biases"]),
-            hidden_activation=activation_function(generation["hidden_activation"]),
-            output_activation=activation_function(generation["output_activation"]),
+            hidden_activation=_activation_function(generation["hidden_activation"]),
+            output_activation=_activation_function(generation["output_activation"]),
             generation=generation["generation"],
         )
 
@@ -253,14 +241,14 @@ class Agent:
         self.ticks += 1
         self.values[0][:] = inputs[:]
 
-        for i in range(len(self.layers) - 1):
+        for i in range(len(self.layers) - 2):
             self.values[i + 1] = self.hidden_activation(
                 numpy.dot(self.values[i], self.weights[i]) + self.biases[i]
             )
 
-        # self.values[-1] = self.output_activation(
-        #     numpy.dot(self.values[-2], self.weights[-1]) + self.biases[-1]
-        # )
+        self.values[-1] = self.output_activation(
+            numpy.dot(self.values[-2], self.weights[-1]) + self.biases[-1]
+        )
 
         return self.values[-1]
 
@@ -283,7 +271,7 @@ class ReinforcementLearningModel:
     def _load_data(self, *args):
         self.weights = []
         self.biases = []
-        self.data = load()
+        self.data = _load_generation()
 
         if self.data:
             weights = numpy.array(self.data["weights"])
@@ -293,8 +281,8 @@ class ReinforcementLearningModel:
         else:
             self._default_data(*args)
 
-        self.hidden_activation = activation_function(self.data["hidden_activation"])
-        self.output_activation = activation_function(self.data["output_activation"])
+        self.hidden_activation = _activation_function(self.data["hidden_activation"])
+        self.output_activation = _activation_function(self.data["output_activation"])
 
     def _default_data(
         self, inputs, outputs, hidden, hidden_activation, output_activation
@@ -319,10 +307,12 @@ class ReinforcementLearningModel:
     def train(self):
         set_niceness(-10)
         last_time = time.time()
+
         with concurrent.futures.ProcessPoolExecutor(NUM_WORKERS) as executor:
             for _ in range(SESSION_GENERATIONS):
                 self.data["generation"] += 1
                 self._iterate(executor)
+
                 t = time.time()
                 self.data["time"] += t - last_time
                 last_time = t
