@@ -3,7 +3,7 @@
 This Python program simulates a pendulum on a cart that can move within the range of -1 ≤ x ≤ 1.  
 An AI, trained using reinforcement learning, balances the pendulum upside down.
 
-![Pendulum preview](preview/pendulum.wep)
+![Pendulum preview](preview/pendulum.webp)
 
 ---
 
