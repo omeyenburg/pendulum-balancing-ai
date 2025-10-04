@@ -90,6 +90,8 @@ One of the best-performing generations is generation 12170. To run the simulatio
 
 ### Gravity and damping values
 
+For better training results, the values of gravity and damping were adjusted during training.
+
 - Generation 1388
 
   > ```
