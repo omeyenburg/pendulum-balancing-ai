@@ -1,6 +1,11 @@
 # Pendulum Balancing AI
 
-This Python program simulates a pendulum on a cart that can move within the range of -1 ≤ x ≤ 1. An AI, trained using reinforcement learning, balances the pendulum upside down.
+This Python program simulates a pendulum on a cart that can move within the range of -1 ≤ x ≤ 1.  
+An AI, trained using reinforcement learning, balances the pendulum upside down.
+
+![Pendulum preview](preview/pendulum.mp4)
+
+---
 
 AI inputs:
 
@@ -13,6 +18,8 @@ AI inputs:
 AI output:
 
 - horizontal acceleration
+
+![Pendulum preview](preview/Balancing.mp4)
 
 ## Dependencies
 
@@ -102,6 +109,7 @@ One of the best-performing generations is generation 12170. To run the simulatio
   > ```
 
 - Generations past 12157:
+
   > ```
   > angular_damping = 0.1
   > horizontal_damping = 0.3
